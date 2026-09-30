@@ -1,0 +1,188 @@
+{
+  "info": {
+    "_postman_id": "8b9b5e21-e65a-433d-bfe1-7eff40ed4f19",
+    "name": "API Tesis UNI",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "58453954",
+    "_collection_link": "https://go.postman.co/collection/58453954-8b9b5e21-e65a-433d-bfe1-7eff40ed4f19?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "http://localhost:3000/api/estudiantes",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWJiMjkxOTAyYTFlZjljZGUyMDIxOWIiLCJpYXQiOjE3OTA3MzU2OTcsImV4cCI6MTc5MDc0Mjg5N30.6RGebHOv5XbysF9bfXGhnaHpjFpL62AfOpKqk3IXAkU",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"carnet\": \"2026-0123N\",\r\n  \"nombre\": \"Rafael Mairena\",\r\n  \"carrera\": \"Ingeniería en Sistemas\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/estudiantes",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "estudiantes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://localhost:3000/api/auth/login",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"rafael.mairena@uni.ni\",\r\n  \"password\": \"passwordSeguro123\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/auth/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://localhost:3000/api/lineas",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWJiMjkxOTAyYTFlZjljZGUyMDIxOWIiLCJpYXQiOjE3OTA3MzU2OTcsImV4cCI6MTc5MDc0Mjg5N30.6RGebHOv5XbysF9bfXGhnaHpjFpL62AfOpKqk3IXAkU",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"nombre\": \"Inteligencia Artificial y Redes\",\r\n  \"codigo\": \"LI-01\",\r\n  \"activa\": true\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/lineas",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "lineas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://localhost:3000/api/estudiantes",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWJiMjkxOTAyYTFlZjljZGUyMDIxOWIiLCJpYXQiOjE3OTA3MzU2OTcsImV4cCI6MTc5MDc0Mjg5N30.6RGebHOv5XbysF9bfXGhnaHpjFpL62AfOpKqk3IXAkU",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"carnet\": \"2026-0124N\",\r\n  \"nombre\": \"Jairo Reyes\",\r\n  \"carrera\": \"Ingeniería en Sistemas\",\r\n  \"lineaInvestigacion\": \"6abc7b5d374566bea15e8234\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/estudiantes",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "estudiantes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://localhost:3000/api/estudiantes",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWJiMjkxOTAyYTFlZjljZGUyMDIxOWIiLCJpYXQiOjE3OTA3MzU2OTcsImV4cCI6MTc5MDc0Mjg5N30.6RGebHOv5XbysF9bfXGhnaHpjFpL62AfOpKqk3IXAkU",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/api/estudiantes",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "estudiantes"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
