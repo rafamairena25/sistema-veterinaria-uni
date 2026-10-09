@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { obtenerRoles } from '../services/api';
 
 export default function Catalogos() {
+  const [rolesDb, setRolesDb] = useState([]);
+  
   const [vacunas, setVacunas] = useState([
     { id: 1, nombre: 'Rabia', stock: '25 dosis' },
     { id: 2, nombre: 'Triple Felina', stock: '12 dosis' },
@@ -16,6 +19,11 @@ export default function Catalogos() {
   const [nuevaVacuna, setNuevaVacuna] = useState('');
   const [nuevoServicio, setNuevoServicio] = useState('');
   const [costoServicio, setCostoServicio] = useState('');
+
+  // Consumir la API al cargar el componente
+  useEffect(() => {
+    obtenerRoles().then(data => setRolesDb(data));
+  }, []);
 
   const handleAgregarVacuna = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +45,22 @@ export default function Catalogos() {
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-2">
         <h2 className="text-xl font-bold text-gray-800">Catálogos del Sistema (CUN-04)</h2>
         <p className="text-sm text-gray-500">Administración general de los cuadros de vacunas, tratamientos y tarifarios de servicios de la clínica.</p>
+      </div>
+
+      {/* Sección de prueba de conexión con la Base de Datos vía API */}
+      <div className="bg-blue-50 border border-blue-200 p-6 rounded-xl space-y-3">
+        <h3 className="font-bold text-blue-900 text-sm flex items-center justify-between">
+          <span>Roles obtenidos desde PostgreSQL (Vía API Backend)</span>
+          <span className="text-xs bg-blue-600 text-white px-2.5 py-0.5 rounded-full">{rolesDb.length} registros en BD</span>
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          {rolesDb.map((rol: any) => (
+            <div key={rol.id_rol} className="bg-white p-3 rounded-lg shadow-sm border border-blue-100 flex flex-col">
+              <span className="text-xs text-gray-400 font-mono">ID: {rol.id_rol}</span>
+              <span className="text-sm font-semibold text-gray-800">{rol.nombre_rol}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
