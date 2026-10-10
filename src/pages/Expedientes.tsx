@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { obtenerExpedientes } from '../services/api';
 
 interface Consulta {
   fecha: string;
@@ -25,6 +26,7 @@ export default function Expedientes() {
   const [expedientes, setExpedientes] = useState<Expediente[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [mascotaSeleccionada, setMascotaSeleccionada] = useState<Expediente | null>(null);
+  const [cargando, setCargando] = useState(true);
 
   const [mascota, setMascota] = useState('');
   const [especie, setEspecie] = useState('Perro');
@@ -34,11 +36,33 @@ export default function Expedientes() {
 
   const listaEspecies = ['Perro', 'Gato', 'Ave', 'Conejo', 'Otro'];
 
+  // Cargar expedientes desde la Base de Datos en Render
   useEffect(() => {
-    const dataExp = localStorage.getItem('vet_expedientes');
-    if (dataExp) {
-      setExpedientes(JSON.parse(dataExp));
+    async function cargarExpedientesBD() {
+      setCargando(true);
+      const datosBD = await obtenerExpedientes();
+
+      if (datosBD && datosBD.length > 0) {
+        const mapeados: Expediente[] = datosBD.map((item: any) => ({
+          id: item.id_mascota ? item.id_mascota.toString() : (item.id || Date.now().toString()),
+          mascota: item.nombre_mascota || item.mascota || 'Sin nombre',
+          especie: item.especie || 'No especificada',
+          raza: item.raza || 'Mestizo',
+          propietario: item.propietario || 'No registrado',
+          telefono: item.telefono || 'No registrado',
+          historial: item.historial || []
+        }));
+        setExpedientes(mapeados);
+      } else {
+        const dataExp = localStorage.getItem('vet_expedientes');
+        if (dataExp) {
+          setExpedientes(JSON.parse(dataExp));
+        }
+      }
+      setCargando(false);
     }
+
+    cargarExpedientesBD();
   }, []);
 
   const guardarExpediente = (e: React.FormEvent) => {
@@ -59,7 +83,6 @@ export default function Expedientes() {
     setExpedientes(actualizados);
     localStorage.setItem('vet_expedientes', JSON.stringify(actualizados));
 
-    // Limpiar formulario
     setMascota('');
     setPropietario('');
     setTelefono('');
@@ -68,7 +91,7 @@ export default function Expedientes() {
   };
 
   const eliminarExpediente = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Evita que se abra el modal al hacer clic en eliminar
+    e.stopPropagation();
     const actualizados = expedientes.filter((item) => item.id !== id);
     setExpedientes(actualizados);
     localStorage.setItem('vet_expedientes', JSON.stringify(actualizados));
@@ -82,9 +105,14 @@ export default function Expedientes() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Gestión de Expedientes</h1>
-        <p className="text-sm text-gray-500">Registro, consulta de pacientes e historial médico clínico</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Gestión de Expedientes</h1>
+          <p className="text-sm text-gray-500">Registro, consulta de pacientes e historial médico clínico</p>
+        </div>
+        <span className="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-medium">
+          🌐 Conectado a PostgreSQL en Render
+        </span>
       </div>
 
       {/* Formulario de Alta */}
@@ -148,7 +176,7 @@ export default function Expedientes() {
             <h2 className="font-semibold text-gray-800">Listado de Pacientes ({expedientesFiltrados.length})</h2>
             <p className="text-xs text-gray-400">Haz clic en cualquier fila para ver el historial clínico completo y recetas.</p>
           </div>
-          
+
           <div className="w-full sm:w-72">
             <input
               type="text"
@@ -160,57 +188,63 @@ export default function Expedientes() {
           </div>
         </div>
 
-        <table className="w-full text-left border-collapse text-sm">
-          <thead className="bg-gray-50 border-b border-gray-100 text-gray-500">
-            <tr>
-              <th className="p-3">Mascota</th>
-              <th className="p-3">Especie / Raza</th>
-              <th className="p-3">Propietario</th>
-              <th className="p-3">Teléfono</th>
-              <th className="p-3 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {expedientesFiltrados.length > 0 ? (
-              expedientesFiltrados.map((e) => (
-                <tr 
-                  key={e.id} 
-                  onClick={() => setMascotaSeleccionada(e)}
-                  className="hover:bg-blue-50/40 cursor-pointer transition"
-                >
-                  <td className="p-3 font-semibold text-gray-800 flex items-center gap-2">
-                    {e.mascota}
-                    {e.historial && e.historial.length > 0 && (
-                      <span className="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-medium">
-                        {e.historial.length} consultas
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-3 text-gray-600">{e.especie} - {e.raza}</td>
-                  <td className="p-3 text-gray-600">{e.propietario}</td>
-                  <td className="p-3 text-gray-600">{e.telefono || 'No registrado'}</td>
-                  <td className="p-3 text-right">
-                    <button
-                      onClick={(evt) => eliminarExpediente(e.id, evt)}
-                      className="text-red-500 hover:text-red-700 text-xs font-medium px-2 py-1 bg-red-50 rounded hover:bg-red-100 transition cursor-pointer"
-                    >
-                      Eliminar
-                    </button>
+        {cargando ? (
+          <div className="p-8 text-center text-blue-600 font-medium text-sm animate-pulse">
+            Obteniendo expedientes desde la nube...
+          </div>
+        ) : (
+          <table className="w-full text-left border-collapse text-sm">
+            <thead className="bg-gray-50 border-b border-gray-100 text-gray-500">
+              <tr>
+                <th className="p-3">Mascota</th>
+                <th className="p-3">Especie / Raza</th>
+                <th className="p-3">Propietario</th>
+                <th className="p-3">Teléfono</th>
+                <th className="p-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {expedientesFiltrados.length > 0 ? (
+                expedientesFiltrados.map((e) => (
+                  <tr
+                    key={e.id}
+                    onClick={() => setMascotaSeleccionada(e)}
+                    className="hover:bg-blue-50/40 cursor-pointer transition"
+                  >
+                    <td className="p-3 font-semibold text-gray-800 flex items-center gap-2">
+                      {e.mascota}
+                      {e.historial && e.historial.length > 0 && (
+                        <span className="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-medium">
+                          {e.historial.length} consultas
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3 text-gray-600">{e.especie} {e.raza ? `- ${e.raza}` : ''}</td>
+                    <td className="p-3 text-gray-600">{e.propietario}</td>
+                    <td className="p-3 text-gray-600">{e.telefono || 'No registrado'}</td>
+                    <td className="p-3 text-right">
+                      <button
+                        onClick={(evt) => eliminarExpediente(e.id, evt)}
+                        className="text-red-500 hover:text-red-700 text-xs font-medium px-2 py-1 bg-red-50 rounded hover:bg-red-100 transition cursor-pointer"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-gray-400 text-sm">
+                    No se encontraron expedientes registrados. Agrega uno arriba o realiza una consulta médica.
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5} className="p-8 text-center text-gray-400 text-sm">
-                  No se encontraron expedientes registrados. Agrega uno arriba o haz una consulta médica.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      {/* Modal para ver el Historial Clínico de la Mascota */}
+      {/* Modal para ver el Historial Clínico */}
       {mascotaSeleccionada && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl">
@@ -232,7 +266,7 @@ export default function Expedientes() {
 
             <div className="space-y-4">
               <h3 className="text-sm font-bold uppercase tracking-wider text-blue-600">Historial de Consultas y Recetas</h3>
-              
+
               {mascotaSeleccionada.historial && mascotaSeleccionada.historial.length > 0 ? (
                 mascotaSeleccionada.historial.map((c, index) => (
                   <div key={index} className="border border-gray-200 rounded-xl p-4 space-y-3 bg-gray-50/50 shadow-xs">
