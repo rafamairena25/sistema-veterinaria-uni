@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { obtenerExpedientes } from '../services/api';
+import { obtenerExpedientes, crearExpedienteAPI } from '../services/api';
 
 interface Consulta {
   fecha: string;
@@ -36,53 +36,67 @@ export default function Expedientes() {
 
   const listaEspecies = ['Perro', 'Gato', 'Ave', 'Conejo', 'Otro'];
 
-  // Cargar expedientes desde la Base de Datos en Render
-  useEffect(() => {
-    async function cargarExpedientesBD() {
-      setCargando(true);
-      const datosBD = await obtenerExpedientes();
+  // Función para cargar expedientes desde la Base de Datos en Render
+  async function cargarExpedientesBD() {
+    setCargando(true);
+    const datosBD = await obtenerExpedientes();
 
-      if (datosBD && datosBD.length > 0) {
-        const mapeados: Expediente[] = datosBD.map((item: any) => ({
-          id: item.id_mascota ? item.id_mascota.toString() : (item.id || Date.now().toString()),
-          mascota: item.nombre_mascota || item.mascota || 'Sin nombre',
-          especie: item.especie || 'No especificada',
-          raza: item.raza || 'Mestizo',
-          propietario: item.propietario || 'No registrado',
-          telefono: item.telefono || 'No registrado',
-          historial: item.historial || []
-        }));
-        setExpedientes(mapeados);
-      } else {
-        const dataExp = localStorage.getItem('vet_expedientes');
-        if (dataExp) {
-          setExpedientes(JSON.parse(dataExp));
-        }
+    if (datosBD && datosBD.length > 0) {
+      const mapeados: Expediente[] = datosBD.map((item: any) => ({
+        id: item.id_mascota ? item.id_mascota.toString() : (item.id || Date.now().toString()),
+        mascota: item.nombre_mascota || item.mascota || 'Sin nombre',
+        especie: item.especie || 'No especificada',
+        raza: item.raza || 'Mestizo',
+        propietario: item.propietario || 'No registrado',
+        telefono: item.telefono || 'No registrado',
+        historial: item.historial || []
+      }));
+      setExpedientes(mapeados);
+    } else {
+      const dataExp = localStorage.getItem('vet_expedientes');
+      if (dataExp) {
+        setExpedientes(JSON.parse(dataExp));
       }
-      setCargando(false);
     }
+    setCargando(false);
+  }
 
+  useEffect(() => {
     cargarExpedientesBD();
   }, []);
 
-  const guardarExpediente = (e: React.FormEvent) => {
+  // Modificado para guardar directamente en PostgreSQL a través de la API
+  const guardarExpediente = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mascota || !propietario) return;
 
-    const nuevo: Expediente = {
-      id: Date.now().toString(),
+    const nuevoRegistro = {
       mascota,
       especie,
       raza: raza || 'Mestizo',
       propietario,
-      telefono,
-      historial: []
+      telefono
     };
 
-    const actualizados = [...expedientes, nuevo];
-    setExpedientes(actualizados);
-    localStorage.setItem('vet_expedientes', JSON.stringify(actualizados));
+    // Petición POST a la API en Render
+    const resultado = await crearExpedienteAPI(nuevoRegistro);
 
+    if (resultado) {
+      // Recargar expedientes desde la BD para mantener sincronizado
+      await cargarExpedientesBD();
+    } else {
+      // Respaldo local en caso de fallo temporal de red
+      const nuevoLocal: Expediente = {
+        id: Date.now().toString(),
+        ...nuevoRegistro,
+        historial: []
+      };
+      const actualizados = [...expedientes, nuevoLocal];
+      setExpedientes(actualizados);
+      localStorage.setItem('vet_expedientes', JSON.stringify(actualizados));
+    }
+
+    // Limpiar formulario
     setMascota('');
     setPropietario('');
     setTelefono('');
