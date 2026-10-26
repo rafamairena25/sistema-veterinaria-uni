@@ -32,28 +32,23 @@ export default function App() {
       }
     }
 
-    // 2. Cargar todas las mascotas de los expedientes
-    const expedientesGuardados = localStorage.getItem('vet_expedientes');
-    if (expedientesGuardados) {
-      const expedientes = JSON.parse(expedientesGuardados);
-      setMascotasCliente(expedientes);
-      
-      if (expedientes.length > 0) {
-        const m = expedientes[0];
-        const nombreMascota = m.nombre || m.name || m.mascota || m.paciente || 'Mascota';
-        const razaMascota = m.raza || m.breed || '';
-        setMascotaReserva(razaMascota ? `${nombreMascota} (${razaMascota})` : nombreMascota);
-      } else {
-        setMascotaReserva('');
+    // 2. Cargar todas las mascotas reales desde el Backend de PostgreSQL
+    const fetchMascotasBD = async () => {
+      try {
+        const response = await fetch('https://veterinaria-backend-vy1q.onrender.com/api/expedientes');
+        if (response.ok) {
+          const data = await response.json();
+          setMascotasCliente(data);
+          if (data.length > 0) {
+            setMascotaReserva(data[0].id_mascota.toString());
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar mascotas para reserva web:', error);
       }
-    } else {
-      const datosPrueba = [
-        { mascota: 'Max', raza: 'Golden Retriever', propietario: 'Admin' },
-        { mascota: 'Luna', raza: 'Siamés', propietario: 'Admin' }
-      ];
-      setMascotasCliente(datosPrueba);
-      setMascotaReserva('Max (Golden Retriever)');
-    }
+    };
+
+    fetchMascotasBD();
   }, []);
 
   const handleLogout = () => {
@@ -61,52 +56,49 @@ export default function App() {
     setUser(null);
   };
 
-  const handleConfirmarReserva = (e: React.FormEvent) => {
+  const handleConfirmarReserva = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mascotaReserva || !fechaReserva || !horaReserva) {
-      alert('Por favor completa todos los campos (mascota, fecha y hora).');
+      alert('Por favor selecciona una mascota, fecha y hora.');
       return;
     }
 
-    const nuevaCita = {
-      id: Date.now().toString(),
-      mascota: mascotaReserva,
-      fecha: fechaReserva,
-      hora: horaReserva,
-      motivo: servicioReserva,
-      estado: 'Programada (Web)'
-    };
+    const fechaHoraCombinada = `${fechaReserva} ${horaReserva}:00`;
 
-    // Guardar en localStorage para que el Dashboard y el módulo de citas lo detecten
-    const citasActuales = JSON.parse(localStorage.getItem('vet_citas') || '[]');
-    const nuevasCitas = [nuevaCita, ...citasActuales];
-    localStorage.setItem('vet_citas', JSON.stringify(nuevasCitas));
-    localStorage.setItem('citas', JSON.stringify(nuevasCitas));
+    try {
+      const response = await fetch('https://veterinaria-backend-vy1q.onrender.com/api/citas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id_mascota: mascotaReserva,
+          fecha_cita: fechaHoraCombinada,
+          motivo_servicio: servicioReserva
+        }),
+      });
 
-    alert(`¡Cita confirmada con éxito para ${mascotaReserva} (${servicioReserva}) el ${fechaReserva} a las ${horaReserva}!`);
-    
-    // Limpiar campos de fecha y hora
-    setFechaReserva('');
-    setHoraReserva('');
+      const resultado = await response.json();
+
+      if (!response.ok) {
+        alert(resultado.error || 'Error al agendar la cita en el servidor.');
+        return;
+      }
+
+      alert(`¡Cita confirmada con éxito en la base de datos para el ${fechaHoraCombinada}!`);
+      
+      // Limpiar campos de fecha y hora
+      setFechaReserva('');
+      setHoraReserva('');
+    } catch (error) {
+      console.error('Error de red al confirmar reserva:', error);
+      alert('No se pudo conectar con el servidor para guardar la cita.');
+    }
   };
 
   if (!user) {
     return <Login onLoginSuccess={(u) => {
       setUser(u);
-      const expedientesGuardados = localStorage.getItem('vet_expedientes');
-      if (expedientesGuardados) {
-        const expedientes = JSON.parse(expedientesGuardados);
-        setMascotasCliente(expedientes);
-        if (expedientes.length > 0) {
-          const m = expedientes[0];
-          const nombreMascota = m.nombre || m.name || m.mascota || m.paciente || 'Mascota';
-          const razaMascota = m.raza || m.breed || '';
-          setMascotaReserva(razaMascota ? `${nombreMascota} (${razaMascota})` : nombreMascota);
-        } else {
-          setMascotaReserva('');
-        }
-      }
-
       if (u.role === 'cliente') {
         setVista('reserva');
       } else {
@@ -218,17 +210,11 @@ export default function App() {
                   {mascotasCliente.length === 0 && (
                     <option value="">No hay mascotas registradas</option>
                   )}
-                  {mascotasCliente.map((m, index) => {
-                    const nombreMascota = m.nombre || m.name || m.mascota || m.paciente || `Mascota ${index + 1}`;
-                    const razaMascota = m.raza || m.breed || '';
-                    const textoOpcion = razaMascota ? `${nombreMascota} (${razaMascota})` : nombreMascota;
-
-                    return (
-                      <option key={index} value={textoOpcion}>
-                        {textoOpcion}
-                      </option>
-                    );
-                  })}
+                  {mascotasCliente.map((m) => (
+                    <option key={m.id_mascota} value={m.id_mascota}>
+                      {m.nombre_mascota} ({m.raza || m.especie}) - Propietario: {m.propietario}
+                    </option>
+                  ))}
                 </select>
               </div>
 
