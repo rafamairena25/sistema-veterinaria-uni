@@ -63,12 +63,11 @@ export default function Citas() {
       const resultado = await response.json();
 
       if (!response.ok) {
-        // Mostrar alerta si el backend detecta un choque de horarios
         alert(resultado.error || 'Error al agendar la cita.');
         return;
       }
 
-      alert(`¡Cita agendada con éxito en el servidor para el horario ${fechaHoraCombinada}!`);
+      alert(`¡Cita agendada con éxito en la base de datos para el horario ${fechaHoraCombinada}!`);
       setFechaCita('');
       setHoraCita('');
     } catch (error) {
@@ -107,7 +106,6 @@ export default function Citas() {
       }
 
       alert(`¡Orden de atención médica registrada y guardada en la base de datos correctamente!`);
-      // Limpiar formulario de atención
       setPeso('');
       setTemperatura('');
       setFrecuenciaCardiaca('');
