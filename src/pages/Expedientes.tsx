@@ -65,6 +65,32 @@ export default function Expedientes() {
     cargarExpedientesBD();
   }, []);
 
+  // Función para abrir el modal y consultar el historial médico en la nube
+  const seleccionarMascotaConHistorial = async (e: Expediente) => {
+    setMascotaSeleccionada(e);
+    try {
+      const response = await fetch(`https://veterinaria-backend-vy1q.onrender.com/api/historial/${e.id}`);
+      if (response.ok) {
+        const dataHistorial = await response.json();
+        // Mapear los datos que vienen de PostgreSQL al formato que usa el componente
+        const historialMapeado: Consulta[] = dataHistorial.map((h: any) => ({
+          fecha: h.fecha_consulta ? new Date(h.fecha_consulta).toLocaleString() : 'Reciente',
+          peso: h.constantes_vitales || 'N/D',
+          temperatura: '',
+          frecuenciaCardiaca: '',
+          motivo: h.observaciones || 'Consulta General',
+          diagnostico: h.diagnostico || 'Sin diagnóstico',
+          tratamiento: h.tratamiento_recetado || 'Sin tratamiento',
+          medicamentos: h.tratamiento_recetado || 'Ninguno'
+        }));
+
+        setMascotaSeleccionada((prev) => prev ? { ...prev, historial: historialMapeado } : null);
+      }
+    } catch (error) {
+      console.error('Error al cargar el historial clínico de la mascota:', error);
+    }
+  };
+
   // Modificado para guardar directamente en PostgreSQL a través de la API
   const guardarExpediente = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,7 +248,7 @@ export default function Expedientes() {
                 expedientesFiltrados.map((e) => (
                   <tr
                     key={e.id}
-                    onClick={() => setMascotaSeleccionada(e)}
+                    onClick={() => seleccionarMascotaConHistorial(e)}
                     className="hover:bg-blue-50/40 cursor-pointer transition"
                   >
                     <td className="p-3 font-semibold text-gray-800 flex items-center gap-2">
@@ -287,15 +313,13 @@ export default function Expedientes() {
                     <div className="flex justify-between items-center text-xs text-gray-500 border-b pb-2">
                       <span className="font-semibold text-gray-700">📅 Fecha: {c.fecha || 'Reciente'}</span>
                       <div className="space-x-3">
-                        <span>Peso: <b>{c.peso || 'N/D'}</b></span>
-                        <span>Temp: <b>{c.temperatura || 'N/D'}</b></span>
-                        <span>FC: <b>{c.frecuenciaCardiaca || 'N/D'}</b></span>
+                        <span>Constantes: <b>{c.peso || 'N/D'}</b></span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                       <div>
-                        <p className="font-semibold text-gray-700">Motivo:</p>
+                        <p className="font-semibold text-gray-700">Motivo / Observaciones:</p>
                         <p className="text-gray-600 bg-white p-2 rounded border border-gray-100 mt-0.5">{c.motivo || 'Sin especificar'}</p>
                       </div>
                       <div>
@@ -306,12 +330,8 @@ export default function Expedientes() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
                       <div>
-                        <p className="font-semibold text-gray-700">Tratamiento:</p>
-                        <p className="text-gray-600 bg-white p-2 rounded border border-gray-100 mt-0.5">{c.tratamiento || 'Sin especificar'}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium text-emerald-700">Medicamentos / Vacunas:</p>
-                        <p className="text-emerald-800 bg-emerald-50/60 p-2 rounded border border-emerald-100 mt-0.5 font-medium">{c.medicamentos || 'Ninguno'}</p>
+                        <p className="font-medium text-emerald-700">Tratamiento / Receta:</p>
+                        <p className="text-emerald-800 bg-emerald-50/60 p-2 rounded border border-emerald-100 mt-0.5 font-medium">{c.tratamiento || 'Ninguno'}</p>
                       </div>
                     </div>
                   </div>
