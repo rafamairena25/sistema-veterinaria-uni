@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 
 interface Cita {
+  id_cita?: number | string;
   id?: string;
   mascota?: string;
   paciente?: string;
   nombre?: string;
+  fecha_cita?: string;
   fecha?: string;
   hora?: string;
+  motivo_servicio?: string;
   motivo?: string;
   estado?: string;
   [key: string]: any;
@@ -23,39 +26,41 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const [todasLasCitas, setTodasLasCitas] = useState<Cita[]>([]);
 
   useEffect(() => {
-    // 1. Expedientes
-    const exp = localStorage.getItem('vet_expedientes');
-    if (exp) {
-      try { setTotalExpedientes(JSON.parse(exp).length); } catch (e) { console.error(e); }
-    }
-
-    // 2. Citas (Buscamos en todas las posibles llaves que usan los componentes de citas)
-    const llavesCitas = ['vet_citas', 'citas', 'lista_citas', 'citas_vet'];
-    let listaCitasEncontradas: Cita[] = [];
-
-    for (const llave of llavesCitas) {
-      const data = localStorage.getItem(llave);
-      if (data) {
-        try {
-          const parsed = JSON.parse(data);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            listaCitasEncontradas = parsed;
-            break;
-          }
-        } catch (e) {
-          console.error(`Error al parsear ${llave}`, e);
+    // 1. Cargar total de expedientes desde el Backend
+    const fetchExpedientes = async () => {
+      try {
+        const response = await fetch('https://veterinaria-backend-vy1q.onrender.com/api/expedientes');
+        if (response.ok) {
+          const data = await response.json();
+          setTotalExpedientes(data.length);
         }
+      } catch (e) {
+        console.error('Error al cargar expedientes en el dashboard:', e);
       }
-    }
+    };
 
-    setTodasLasCitas(listaCitasEncontradas);
-    setCitasPendientes(listaCitasEncontradas.length);
+    // 2. Cargar citas desde el Backend de PostgreSQL
+    const fetchCitas = async () => {
+      try {
+        const response = await fetch('https://veterinaria-backend-vy1q.onrender.com/api/citas');
+        if (response.ok) {
+          const data = await response.json();
+          setTodasLasCitas(data);
+          setCitasPendientes(data.length);
+        }
+      } catch (e) {
+        console.error('Error al cargar citas en el dashboard:', e);
+      }
+    };
 
-    // 3. Especies
+    // 3. Especies (Mantenemos respaldo en localStorage por si acaso)
     const esp = localStorage.getItem('vet_especies');
     if (esp) {
       try { setTotalEspecies(JSON.parse(esp).length); } catch (e) { console.error(e); }
     }
+
+    fetchExpedientes();
+    fetchCitas();
   }, []);
 
   const irA = (vista: string) => {
@@ -112,7 +117,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
         {todasLasCitas.length === 0 ? (
           <div className="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-100 rounded-lg">
-            No hay citas registradas todavía en el almacenamiento local. Agrega una desde la pestaña <strong>Citas</strong>.
+            No hay citas registradas todavía en la base de datos. Agrega una desde la pestaña <strong>Citas</strong>.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -120,22 +125,22 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               <thead>
                 <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wider">
                   <th className="py-3 px-4 font-semibold">Mascota / Paciente</th>
-                  <th className="py-3 px-4 font-semibold">Fecha Programada</th>
+                  <th className="py-3 px-4 font-semibold">Fecha y Hora</th>
                   <th className="py-3 px-4 font-semibold">Motivo / Servicio</th>
                   <th className="py-3 px-4 font-semibold">Estado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-sm">
                 {todasLasCitas.map((cita, index) => {
-                  const nombreMascota = cita.mascota || cita.paciente || cita.nombre || 'Paciente';
-                  const fechaCita = cita.fecha || cita.date || 'Pendiente';
-                  const motivoCita = cita.motivo || cita.servicio || 'Consulta General';
+                  const nombreMascota = cita.mascota || cita.nombre_mascota || cita.paciente || 'Paciente';
+                  const fechaCompleta = cita.fecha_cita ? new Date(cita.fecha_cita).toLocaleString() : (cita.fecha || 'Pendiente');
+                  const motivoCita = cita.motivo_servicio || cita.motivo || 'Consulta General';
                   const estadoCita = cita.estado || 'Programada';
 
                   return (
-                    <tr key={cita.id || index} className="hover:bg-gray-50/50 transition">
+                    <tr key={cita.id_cita || cita.id || index} className="hover:bg-gray-50/50 transition">
                       <td className="py-3 px-4 font-medium text-gray-800">{nombreMascota}</td>
-                      <td className="py-3 px-4 text-gray-600">{fechaCita} {cita.hora ? `(${cita.hora})` : ''}</td>
+                      <td className="py-3 px-4 text-gray-600">{fechaCompleta}</td>
                       <td className="py-3 px-4 text-gray-600">{motivoCita}</td>
                       <td className="py-3 px-4">
                         <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-100 text-sky-800">
