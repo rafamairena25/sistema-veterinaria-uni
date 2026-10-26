@@ -16,62 +16,70 @@ export default function Citas() {
   const [diagnostico, setDiagnostico] = useState('');
   const [receta, setReceta] = useState('');
 
+  // Cargar mascotas reales desde el Backend / Base de Datos
   useEffect(() => {
-    // Cargar expedientes registrados
-    const exp = localStorage.getItem('vet_expedientes');
-    if (exp) {
+    const fetchMascotas = async () => {
       try {
-        const lista = JSON.parse(exp);
-        setMascotas(lista);
-        if (lista.length > 0) {
-          const m = lista[0];
-          const nombre = m.nombre || m.name || m.mascota || m.paciente || 'Mascota';
-          const raza = m.raza || m.breed || '';
-          const texto = raza ? `${nombre} (${raza})` : nombre;
-          setMascotaSeleccionada(texto);
-          setPacienteAtencion(texto);
+        const response = await fetch('https://veterinaria-backend-vy1q.onrender.com/api/expedientes');
+        if (response.ok) {
+          const data = await response.json();
+          setMascotas(data);
+          if (data.length > 0) {
+            setMascotaSeleccionada(data[0].id_mascota.toString());
+            setPacienteAtencion(data[0].id_mascota.toString());
+          }
         }
-      } catch (e) {
-        console.error(e);
+      } catch (error) {
+        console.error('Error al cargar mascotas para citas:', error);
       }
-    } else {
-      const prueba = [{ nombre: 'Max', raza: 'Golden Retriever' }, { nombre: 'Raul', raza: 'Pitbull' }];
-      setMascotas(prueba);
-      setMascotaSeleccionada('Max (Golden Retriever)');
-      setPacienteAtencion('Raul (Pitbull)');
-    }
+    };
+
+    fetchMascotas();
   }, []);
 
-  const handleAgendarCita = (e: React.FormEvent) => {
+  const handleAgendarCita = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mascotaSeleccionada || !fechaCita) {
-      alert('Por favor selecciona una mascota y una fecha para la cita.');
+    if (!mascotaSeleccionada || !fechaCita || !horaCita) {
+      alert('Por favor selecciona una mascota, una fecha y una hora para la cita.');
       return;
     }
 
-    const nuevaCita = {
-      id: Date.now().toString(),
-      mascota: mascotaSeleccionada,
-      fecha: fechaCita,
-      hora: horaCita || '09:00',
-      motivo: motivoCita,
-      estado: 'Programada'
-    };
+    // Combinar fecha y hora en el formato que espera PostgreSQL (YYYY-MM-DD HH:mm:ss)
+    const fechaHoraCombinada = `${fechaCita} ${horaCita}:00`;
 
-    // Guardar en localStorage para que el Dashboard lo lea al instante
-    const citasActuales = JSON.parse(localStorage.getItem('vet_citas') || '[]');
-    const nuevasCitas = [nuevaCita, ...citasActuales];
-    localStorage.setItem('vet_citas', JSON.stringify(nuevasCitas));
-    localStorage.setItem('citas', JSON.stringify(nuevasCitas));
+    try {
+      const response = await fetch('https://veterinaria-backend-vy1q.onrender.com/api/citas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id_mascota: mascotaSeleccionada,
+          fecha_cita: fechaHoraCombinada,
+          motivo_servicio: motivoCita
+        }),
+      });
 
-    alert(`¡Cita agendada con éxito para ${mascotaSeleccionada} el ${fechaCita}!`);
-    setFechaCita('');
-    setHoraCita('');
+      const resultado = await response.json();
+
+      if (!response.ok) {
+        // Mostrar alerta si el backend detecta un choque de horarios
+        alert(resultado.error || 'Error al agendar la cita.');
+        return;
+      }
+
+      alert(`¡Cita agendada con éxito en el servidor para el horario ${fechaHoraCombinada}!`);
+      setFechaCita('');
+      setHoraCita('');
+    } catch (error) {
+      console.error('Error de red al agendar cita:', error);
+      alert('No se pudo conectar con el servidor para agendar la cita.');
+    }
   };
 
   const handleGuardarAtencion = (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`¡Orden de atención médica registrada correctamente para ${pacienteAtencion}!`);
+    alert(`¡Orden de atención médica registrada correctamente!`);
   };
 
   return (
@@ -79,7 +87,7 @@ export default function Citas() {
       {/* Sección 1: Gestión de Citas (CU-02) */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
         <h2 className="text-xl font-bold text-gray-800">Gestión de Citas Médicas (CU-02)</h2>
-        <p className="text-sm text-gray-600">Registra y programa las citas médicas para los pacientes de la veterinaria.</p>
+        <p className="text-sm text-gray-600">Registra y programa las citas médicas evitando cruces de horarios.</p>
         
         <form onSubmit={handleAgendarCita} className="space-y-4 pt-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -91,14 +99,11 @@ export default function Citas() {
                 className="w-full border border-gray-200 rounded-lg p-2.5 text-sm bg-white outline-none"
               >
                 {mascotas.length === 0 && <option value="">No hay mascotas registradas</option>}
-                {mascotas.map((m, idx) => {
-                  const nombre = m.nombre || m.name || m.mascota || m.paciente || `Mascota ${idx + 1}`;
-                  const raza = m.raza || m.breed || '';
-                  const texto = raza ? `${nombre} (${raza})` : nombre;
-                  return (
-                    <option key={idx} value={texto}>{texto}</option>
-                  );
-                })}
+                {mascotas.map((m) => (
+                  <option key={m.id_mascota} value={m.id_mascota}>
+                    {m.nombre_mascota} ({m.raza || m.especie}) - Propietario: {m.propietario}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -122,6 +127,7 @@ export default function Citas() {
                 value={horaCita}
                 onChange={(e) => setHoraCita(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg p-2.5 text-sm bg-white outline-none"
+                required
               />
             </div>
 
@@ -158,7 +164,6 @@ export default function Citas() {
         </div>
 
         <form onSubmit={handleGuardarAtencion} className="space-y-6">
-          {/* 1. Constantes Vitales */}
           <div className="space-y-4">
             <h3 className="text-sm font-bold text-gray-800 border-b pb-2">1. Constantes Vitales del Paciente</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -169,14 +174,11 @@ export default function Citas() {
                   onChange={(e) => setPacienteAtencion(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg p-2.5 text-sm bg-white outline-none"
                 >
-                  {mascotas.map((m, idx) => {
-                    const nombre = m.nombre || m.name || m.mascota || m.paciente || `Mascota ${idx + 1}`;
-                    const raza = m.raza || m.breed || '';
-                    const texto = raza ? `${nombre} (${raza})` : nombre;
-                    return (
-                      <option key={idx} value={texto}>{texto}</option>
-                    );
-                  })}
+                  {mascotas.map((m) => (
+                    <option key={m.id_mascota} value={m.id_mascota}>
+                      {m.nombre_mascota} ({m.raza || m.especie})
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -215,7 +217,6 @@ export default function Citas() {
             </div>
           </div>
 
-          {/* 2. Evaluación Médica */}
           <div className="space-y-4">
             <h3 className="text-sm font-bold text-gray-800 border-b pb-2">2. Evaluación Médica y Tratamiento</h3>
             
