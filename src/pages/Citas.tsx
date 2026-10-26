@@ -77,9 +77,47 @@ export default function Citas() {
     }
   };
 
-  const handleGuardarAtencion = (e: React.FormEvent) => {
+  const handleGuardarAtencion = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`¡Orden de atención médica registrada correctamente!`);
+    if (!pacienteAtencion || !diagnostico) {
+      alert('Por favor selecciona un paciente y completa el diagnóstico.');
+      return;
+    }
+
+    const constantesTexto = `Peso: ${peso || 'N/D'} kg, Temp: ${temperatura || 'N/D'} °C, F. Cardíaca: ${frecuenciaCardiaca || 'N/D'} lpm`;
+
+    try {
+      const response = await fetch('https://veterinaria-backend-vy1q.onrender.com/api/historial', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id_mascota: pacienteAtencion,
+          constantes_vitales: constantesTexto,
+          motivo_consulta: motivoConsulta || 'Consulta General',
+          diagnostico: diagnostico,
+          tratamiento_recetado: receta || 'Sin tratamiento recetado'
+        }),
+      });
+
+      if (!response.ok) {
+        alert('Error al registrar la orden de atención médica en el servidor.');
+        return;
+      }
+
+      alert(`¡Orden de atención médica registrada y guardada en la base de datos correctamente!`);
+      // Limpiar formulario de atención
+      setPeso('');
+      setTemperatura('');
+      setFrecuenciaCardiaca('');
+      setMotivoConsulta('');
+      setDiagnostico('');
+      setReceta('');
+    } catch (error) {
+      console.error('Error de red al guardar orden de atención:', error);
+      alert('No se pudo conectar con el servidor para guardar la orden.');
+    }
   };
 
   return (
@@ -240,6 +278,7 @@ export default function Citas() {
                   value={diagnostico}
                   onChange={(e) => setDiagnostico(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg p-2.5 text-sm bg-white outline-none"
+                  required
                 />
               </div>
 
