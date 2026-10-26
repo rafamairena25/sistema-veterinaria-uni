@@ -53,14 +53,30 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       }
     };
 
-    // 3. Especies (Mantenemos respaldo en localStorage por si acaso)
-    const esp = localStorage.getItem('vet_especies');
-    if (esp) {
-      try { setTotalEspecies(JSON.parse(esp).length); } catch (e) { console.error(e); }
-    }
+    // 3. Especies (Cargar desde base de datos o respaldo local)
+    const fetchEspecies = async () => {
+      try {
+        const response = await fetch('https://veterinaria-backend-vy1q.onrender.com/api/servicios');
+        if (response.ok) {
+          const data = await response.json();
+          setTotalEspecies(data.length);
+        } else {
+          const esp = localStorage.getItem('vet_especies');
+          if (esp) {
+            setTotalEspecies(JSON.parse(esp).length);
+          }
+        }
+      } catch (e) {
+        const esp = localStorage.getItem('vet_especies');
+        if (esp) {
+          try { setTotalEspecies(JSON.parse(esp).length); } catch (err) { console.error(err); }
+        }
+      }
+    };
 
     fetchExpedientes();
     fetchCitas();
+    fetchEspecies();
   }, []);
 
   const irA = (vista: string) => {
@@ -96,7 +112,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500 font-medium">Especies en Catálogo</p>
+            <p className="text-sm text-gray-500 font-medium">Servicios en Catálogo</p>
             <h2 className="text-3xl font-bold text-purple-600 mt-1">{totalEspecies}</h2>
           </div>
           <span className="text-3xl">🧪</span>
@@ -172,7 +188,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
           <div onClick={() => irA('catalogos')} className="p-4 rounded-lg border border-gray-200 hover:border-purple-500 hover:bg-purple-50/50 transition cursor-pointer group">
             <h3 className="font-semibold text-gray-800 group-hover:text-purple-600">Administrar Catálogos →</h3>
-            <p className="text-xs text-gray-500 mt-1">Mantenimiento de especies y parámetros base.</p>
+            <p className="text-xs text-gray-500 mt-1">Mantenimiento de servicios y parámetros base.</p>
           </div>
         </div>
       </div>
